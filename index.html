@@ -280,7 +280,7 @@
     <script type="application/javascript">
         document.addEventListener("DOMContentLoaded", () => {
             const STREAM_URL = "https://api.j4d.dev/ingestor/chat-event/stream";
-            const MAX_MESSAGES = 9;
+            const MAX_MESSAGES = 12;
             const MESSAGE_TTL_MS = 45_000;
             const SHOW_CREATED_TIME = true;
             const SHOW_ROOM_NAME = false;
@@ -381,14 +381,11 @@
             }
 
             function trimMessages() {
+                // Only trim by message count.
+                // Do not trim based on scrollHeight/clientHeight: in OBS/browser-source
+                // layouts that value can be temporarily too small, which caused the
+                // widget to remove every previous message and leave only the newest one.
                 while (messagesEl.children.length > MAX_MESSAGES) {
-                    removeMessage(messagesEl.firstElementChild, false);
-                }
-
-                // Do not let flexbox compress messages until the text disappears.
-                // If the widget is too short for the current message count, remove
-                // the oldest messages instead.
-                while (messagesEl.scrollHeight > messagesEl.clientHeight && messagesEl.children.length > 1) {
                     removeMessage(messagesEl.firstElementChild, false);
                 }
             }
