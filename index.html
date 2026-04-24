@@ -436,9 +436,34 @@
                 trimMessages();
             }
 
+            function parseChatPayload(eventData) {
+                const envelope = JSON.parse(eventData);
+
+                // Current SSE shape:
+                // data: { "id": "...", "payload": "{\"id\":\"...\", ...}" }
+                //
+                // Also supports a future direct shape:
+                // data: { "id": "...", "username": "...", "message": "..." }
+                if (envelope && typeof envelope === "object" && "payload" in envelope) {
+                    const innerPayload = envelope.payload;
+                    const chatMessage = typeof innerPayload === "string"
+                        ? JSON.parse(innerPayload)
+                        : innerPayload;
+
+                    if (chatMessage && typeof chatMessage === "object") {
+                        return {
+                            ...chatMessage,
+                            id: chatMessage.id ?? envelope.id
+                        };
+                    }
+                }
+
+                return envelope;
+            }
+
             function handlePayload(event) {
                 try {
-                    const payload = JSON.parse(event.data);
+                    const payload = parseChatPayload(event.data);
                     addMessage(payload);
                 } catch (error) {
                     console.error("Could not parse chat payload", error, event.data);
