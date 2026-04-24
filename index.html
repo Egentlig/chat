@@ -83,6 +83,7 @@
 
         .messages {
             display: flex;
+            flex: 1 1 auto;
             flex-direction: column;
             justify-content: flex-end;
             gap: var(--message-gap);
@@ -92,6 +93,7 @@
 
         .chat-message {
             position: relative;
+            flex: 0 0 auto;
             width: 100%;
             padding: 12px 14px 13px;
             border-radius: var(--message-radius);
@@ -278,7 +280,7 @@
     <script type="application/javascript">
         document.addEventListener("DOMContentLoaded", () => {
             const STREAM_URL = "https://api.j4d.dev/ingestor/chat-event/stream";
-            const MAX_MESSAGES = 18;
+            const MAX_MESSAGES = 9;
             const MESSAGE_TTL_MS = 45_000;
             const SHOW_CREATED_TIME = true;
             const SHOW_ROOM_NAME = false;
@@ -360,7 +362,7 @@
                 return "";
             }
 
-            function removeMessage(messageEl) {
+            function removeMessage(messageEl, animate = true) {
                 if (!messageEl || messageEl.classList.contains("removing")) return;
 
                 const id = messageEl.dataset.messageId;
@@ -369,13 +371,25 @@
                     messageTimers.delete(id);
                 }
 
+                if (!animate) {
+                    messageEl.remove();
+                    return;
+                }
+
                 messageEl.classList.add("removing");
                 setTimeout(() => messageEl.remove(), 210);
             }
 
             function trimMessages() {
                 while (messagesEl.children.length > MAX_MESSAGES) {
-                    removeMessage(messagesEl.firstElementChild);
+                    removeMessage(messagesEl.firstElementChild, false);
+                }
+
+                // Do not let flexbox compress messages until the text disappears.
+                // If the widget is too short for the current message count, remove
+                // the oldest messages instead.
+                while (messagesEl.scrollHeight > messagesEl.clientHeight && messagesEl.children.length > 1) {
+                    removeMessage(messagesEl.firstElementChild, false);
                 }
             }
 
@@ -433,7 +447,7 @@
                 const ttlTimer = setTimeout(() => removeMessage(messageEl), MESSAGE_TTL_MS);
                 messageTimers.set(id, ttlTimer);
 
-                trimMessages();
+                requestAnimationFrame(trimMessages);
             }
 
             function parseChatPayload(eventData) {
