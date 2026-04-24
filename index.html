@@ -6,26 +6,481 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <link href="https://fonts.googleapis.com/css?family=Oswald:400;500;600;700&display=swap" rel="stylesheet">
     <title>Chat Widget</title>
+
+    <style>
+        :root {
+            --widget-width: 520px;
+            --widget-height: 720px;
+            --message-gap: 10px;
+            --message-radius: 18px;
+            --message-bg: rgba(12, 12, 18, 0.82);
+            --message-border: rgba(255, 255, 255, 0.11);
+            --message-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+            --text-color: #ffffff;
+            --muted-color: rgba(255, 255, 255, 0.64);
+            --accent-color: #9146ff;
+            --broadcaster-color: #e91916;
+            --mod-color: #00ad03;
+            --vip-color: #e005b9;
+            --sub-color: #9146ff;
+            --system-color: rgba(255, 255, 255, 0.45);
+            --font-family: "Oswald", Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
+            font-family: var(--font-family);
+            color: var(--text-color);
+        }
+
+        body {
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-start;
+        }
+
+        .chat-widget {
+            width: var(--widget-width);
+            height: var(--widget-height);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: var(--message-gap);
+            overflow: hidden;
+        }
+
+        .status-line {
+            align-self: flex-start;
+            max-width: 100%;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.36);
+            color: var(--system-color);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .status-line.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .messages {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: var(--message-gap);
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .chat-message {
+            position: relative;
+            width: 100%;
+            padding: 12px 14px 13px;
+            border-radius: var(--message-radius);
+            background: linear-gradient(135deg, rgba(145, 70, 255, 0.2), transparent 38%), var(--message-bg);
+            border: 1px solid var(--message-border);
+            box-shadow: var(--message-shadow);
+            animation: message-enter 260ms ease-out both;
+            overflow: hidden;
+        }
+
+        .chat-message::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 5px;
+            background: var(--accent-color);
+            opacity: 0.95;
+        }
+
+        .chat-message.is-broadcaster::before {
+            background: var(--broadcaster-color);
+        }
+
+        .chat-message.is-mod::before {
+            background: var(--mod-color);
+        }
+
+        .chat-message.is-vip::before {
+            background: var(--vip-color);
+        }
+
+        .chat-message.is-sub::before {
+            background: var(--sub-color);
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            margin-bottom: 5px;
+            padding-left: 3px;
+        }
+
+        .display-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 21px;
+            font-weight: 700;
+            letter-spacing: 0.015em;
+            line-height: 1.05;
+            color: #ffffff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
+        .badges {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 0 0 auto;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            height: 20px;
+            padding: 0 7px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+            color: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+        }
+
+        .badge-broadcaster {
+            background: var(--broadcaster-color);
+        }
+
+        .badge-mod {
+            background: var(--mod-color);
+        }
+
+        .badge-vip {
+            background: var(--vip-color);
+        }
+
+        .badge-sub {
+            background: var(--sub-color);
+        }
+
+        .message-text {
+            padding-left: 3px;
+            font-size: 24px;
+            font-weight: 500;
+            line-height: 1.22;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            color: rgba(255, 255, 255, 0.94);
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 7px;
+            padding-left: 3px;
+            color: var(--muted-color);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.025em;
+        }
+
+        .message-meta span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @keyframes message-enter {
+            from {
+                opacity: 0;
+                transform: translateX(-18px) translateY(12px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0) translateY(0) scale(1);
+            }
+        }
+
+        @keyframes message-exit {
+            from {
+                opacity: 1;
+                max-height: 220px;
+                margin-top: 0;
+                transform: translateX(0);
+            }
+
+            to {
+                opacity: 0;
+                max-height: 0;
+                margin-top: calc(var(--message-gap) * -1);
+                transform: translateX(-16px);
+            }
+        }
+
+        .chat-message.removing {
+            animation: message-exit 180ms ease-in forwards;
+        }
+
+        @media (max-width: 640px) {
+            :root {
+                --widget-width: 100vw;
+                --widget-height: 100vh;
+            }
+
+            .chat-widget {
+                padding: 12px;
+            }
+
+            .display-name {
+                font-size: 19px;
+            }
+
+            .message-text {
+                font-size: 21px;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <main class="chat-widget" aria-label="Twitch chat">
+        <div id="statusLine" class="status-line">Kobler til chat…</div>
+        <section id="messages" class="messages" aria-live="polite" aria-relevant="additions text"></section>
+    </main>
 
     <script type="application/javascript">
         document.addEventListener("DOMContentLoaded", () => {
-            const events = new EventSource("https://api.j4d.dev/ingestor/chat-event/stream");
+            const STREAM_URL = "https://api.j4d.dev/ingestor/chat-event/stream";
+            const MAX_MESSAGES = 18;
+            const MESSAGE_TTL_MS = 45_000;
+            const SHOW_CREATED_TIME = true;
+            const SHOW_ROOM_NAME = false;
 
-            events.addEventListener("payload", (event) => {
-                const payload = JSON.parse(event.data);
-                console.log("Payload:", payload);
+            const messagesEl = document.getElementById("messages");
+            const statusLineEl = document.getElementById("statusLine");
+            const messageTimers = new Map();
+
+            let statusTimer = null;
+
+            function showStatus(text, sticky = false) {
+                statusLineEl.textContent = text;
+                statusLineEl.classList.add("visible");
+
+                if (statusTimer) {
+                    clearTimeout(statusTimer);
+                    statusTimer = null;
+                }
+
+                if (!sticky) {
+                    statusTimer = setTimeout(() => {
+                        statusLineEl.classList.remove("visible");
+                    }, 2600);
+                }
+            }
+
+            function safeText(value, fallback = "") {
+                if (value === null || value === undefined) return fallback;
+                return String(value);
+            }
+
+            function formatTime(value) {
+                if (!value) return "";
+
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return "";
+
+                return date.toLocaleTimeString("nb-NO", {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+            }
+
+            function createBadge(className, label) {
+                const badge = document.createElement("span");
+                badge.className = `badge ${className}`;
+                badge.textContent = label;
+                return badge;
+            }
+
+            function createBadges(payload) {
+                const badges = document.createElement("span");
+                badges.className = "badges";
+
+                if (payload.broadcaster === true) {
+                    badges.appendChild(createBadge("badge-broadcaster", "STR"));
+                }
+
+                if (payload.mod === true) {
+                    badges.appendChild(createBadge("badge-mod", "MOD"));
+                }
+
+                if (payload.vip === true) {
+                    badges.appendChild(createBadge("badge-vip", "VIP"));
+                }
+
+                if (payload.sub === true) {
+                    badges.appendChild(createBadge("badge-sub", "SUB"));
+                }
+
+                return badges;
+            }
+
+            function roleClass(payload) {
+                if (payload.broadcaster === true) return "is-broadcaster";
+                if (payload.mod === true) return "is-mod";
+                if (payload.vip === true) return "is-vip";
+                if (payload.sub === true) return "is-sub";
+                return "";
+            }
+
+            function removeMessage(messageEl) {
+                if (!messageEl || messageEl.classList.contains("removing")) return;
+
+                const id = messageEl.dataset.messageId;
+                if (id && messageTimers.has(id)) {
+                    clearTimeout(messageTimers.get(id));
+                    messageTimers.delete(id);
+                }
+
+                messageEl.classList.add("removing");
+                setTimeout(() => messageEl.remove(), 210);
+            }
+
+            function trimMessages() {
+                while (messagesEl.children.length > MAX_MESSAGES) {
+                    removeMessage(messagesEl.firstElementChild);
+                }
+            }
+
+            function addMessage(payload) {
+                const id = safeText(payload.id, crypto.randomUUID());
+                const existing = messagesEl.querySelector(`[data-message-id="${CSS.escape(id)}"]`);
+                if (existing) return;
+
+                const messageEl = document.createElement("article");
+                messageEl.className = `chat-message ${roleClass(payload)}`.trim();
+                messageEl.dataset.messageId = id;
+
+                const headerEl = document.createElement("header");
+                headerEl.className = "chat-header";
+
+                const displayNameEl = document.createElement("span");
+                displayNameEl.className = "display-name";
+                displayNameEl.textContent = safeText(payload.displayName, safeText(payload.username, "Ukjent"));
+
+                headerEl.appendChild(displayNameEl);
+                headerEl.appendChild(createBadges(payload));
+
+                const textEl = document.createElement("div");
+                textEl.className = "message-text";
+                textEl.textContent = safeText(payload.message);
+
+                const metaEl = document.createElement("footer");
+                metaEl.className = "message-meta";
+
+                const usernameEl = document.createElement("span");
+                usernameEl.textContent = `@${safeText(payload.username, "unknown")}`;
+                metaEl.appendChild(usernameEl);
+
+                if (SHOW_ROOM_NAME && payload.roomName) {
+                    const roomEl = document.createElement("span");
+                    roomEl.textContent = `#${safeText(payload.roomName)}`;
+                    metaEl.appendChild(roomEl);
+                }
+
+                if (SHOW_CREATED_TIME) {
+                    const time = formatTime(payload.created);
+                    if (time) {
+                        const timeEl = document.createElement("span");
+                        timeEl.textContent = time;
+                        metaEl.appendChild(timeEl);
+                    }
+                }
+
+                messageEl.appendChild(headerEl);
+                messageEl.appendChild(textEl);
+                messageEl.appendChild(metaEl);
+
+                messagesEl.appendChild(messageEl);
+
+                const ttlTimer = setTimeout(() => removeMessage(messageEl), MESSAGE_TTL_MS);
+                messageTimers.set(id, ttlTimer);
+
+                trimMessages();
+            }
+
+            function handlePayload(event) {
+                try {
+                    const payload = JSON.parse(event.data);
+                    addMessage(payload);
+                } catch (error) {
+                    console.error("Could not parse chat payload", error, event.data);
+                    showStatus("Kunne ikke lese chat-melding");
+                }
+            }
+
+            const events = new EventSource(STREAM_URL);
+
+            events.addEventListener("open", () => {
+                showStatus("Chat tilkoblet");
             });
 
+            events.addEventListener("payload", handlePayload);
+
             events.addEventListener("heartbeat", (event) => {
-                console.log("Heartbeat:", JSON.parse(event.data));
+                try {
+                    console.debug("Heartbeat:", JSON.parse(event.data));
+                } catch {
+                    console.debug("Heartbeat:", event.data);
+                }
             });
 
             events.onerror = (error) => {
                 console.error("SSE error", error);
+
+                if (events.readyState === EventSource.CONNECTING) {
+                    showStatus("Mistet chat – kobler til på nytt…", true);
+                } else if (events.readyState === EventSource.CLOSED) {
+                    showStatus("Chat frakoblet", true);
+                }
             };
+
+            window.addEventListener("beforeunload", () => {
+                events.close();
+
+                for (const timer of messageTimers.values()) {
+                    clearTimeout(timer);
+                }
+
+                messageTimers.clear();
+            });
         });
     </script>
 </body>
