@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="nb">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link href="https://fonts.googleapis.com/css?family=Oswald:400;500;600;700&display=swap" rel="stylesheet">
+    <title>Chat Widget</title>
+</head>
+
+<body>
+
+    <script type="application/javascript">
+        document.addEventListener("DOMContentLoaded", () => {
+            const events = new EventSource("https://api.j4d.dev/ingestor/chat-event/stream");
+
+            events.addEventListener("payload", (event) => {
+                const payload = JSON.parse(event.data);
+                console.log("Payload:", payload);
+            });
+
+            events.addEventListener("heartbeat", (event) => {
+                console.log("Heartbeat:", JSON.parse(event.data));
+            });
+
+            events.onerror = (error) => {
+                console.error("SSE error", error);
+            };
+        });
+    </script>
+</body>
+
+</html>
